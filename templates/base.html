@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PDF OCR Viewer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Martel&family=Tinos&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+        }
+        .main-content {
+            display: flex;
+            height: 100vh;
+        }
+        aside.menu {
+            width: 250px;
+            padding: 1rem;
+            border-right: 1px solid #ccc;
+        }
+        .content-area {
+            flex-grow: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            min-height: 100vh;
+        }
+        aside.menu ul.menu-list li a {
+            font-size: 80%;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <!-- Sidebar -->
+        
+        <!-- Main content -->
+        
+
+        <!-- Main content -->
+        <div class="content-area">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</body>
+</html>

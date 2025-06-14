@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="container">
+    <h1>Edit Text</h1>
+    <form method="POST">
+      <textarea class="textarea" name="text" style="width: 90%; height: 300px;">{{ text }}</textarea>
+      <br>
+      <button type="submit" name="action" value="save" class="button is-primary">Save</button>
+      <a href="{{ url_for('view_pdf', filename=filename, page=page) }}" class="button is-link">Cancel</a>
+    </form>
+    <br>
+    <div style="width: 90%; height: 400px; overflow: auto;">
+      <img src="{{ url_for('static', filename='page_preview_' + filename + '_' + page|string + '.png') }}" style="max-width: 100%; height: auto; border: 1px solid #ccc;">
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="nav-group buttons" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <a class="button is-info" href="{{ url_for('upload_file') }}">Back</a>
+        <select class="select is-info mr-2" onchange="window.location.href = this.value;">
+            {% for i in range(1, total_pages + 1) %}
+                <option value="{{ url_for('view_pdf', filename=filename, page=i) }}" {% if page == i %}selected{% endif %}>Page {{ i }}</option>
+            {% endfor %}
+        </select>
+        {% if page > 1 %}
+            <a class="button is-info" href="{{ url_for('view_pdf', filename=filename, page=page-1) }}">⬅️ Prev</a>
+        {% else %}
+            <button class="button is-info" disabled>⬅️ Prev</button>
+        {% endif %}
+        {% if page < total_pages %}
+            <a class="button is-info" href="{{ url_for('view_pdf', filename=filename, page=page+1) }}">Next ➡️</a>
+        {% else %}
+            <button class="button is-info" disabled>Next ➡️</button>
+        {% endif %}
+        <form method="POST" action="{{ url_for('view_pdf', filename=filename, page=page) }}" style="display:inline;">
+            <button class="button is-info" type="button" onclick="toggleView()" id="extractButton">View Text</button>
+        </form>
+        <a class="button is-info" id="editTextButton" href="{{ url_for('edit_text', filename=filename, page=page) }}" style="display: none;">Edit Text</a>
+    </div>
+</div>
+
+<div id="image-view">
+    <img class="pdf-image" src="{{ image_url }}" style="max-width: 100%; width: 100%; height: auto; border: 1px solid #ccc;">
+</div>
+
+<div id="text-view" class="text-column" style="display: none; font-size: 125%;">
+    {{ text|replace('\\n', '<br>')|safe }}
+</div>
+
+<!-- Progress Bar -->
+<div id="progress-container" style="margin-top: 10px; display: none;">
+    <progress id="export-progress" value="0" max="100"></progress>
+    <span id="progress-percentage">0%</span>
+</div>
+
+<div class="nav-group buttons" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        {% if page > 1 %}
+            <a class="button is-info" href="{{ url_for('view_pdf', filename=filename, page=page-1) }}">⬅️ Prev</a>
+        {% endif %}
+        {% if page < total_pages %}
+            <a class="button is-info" href="{{ url_for('view_pdf', filename=filename, page=page+1) }}">Next ➡️</a>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function toggleView() {
+    const imageView = document.getElementById('image-view');
+    const textView = document.getElementById('text-view');
+    var button = document.getElementById('extractButton');
+
+    if (textView.style.display === 'none') {
+        extractText();
+    } else {
+        document.getElementById('text-view').style.display = 'none';
+        document.getElementById('image-view').style.display = 'block';
+        button.innerText = 'View Text'
+    }
+}
+
+function extractText() {
+    // Disable the button
+    var button = document.getElementById('extractButton');
+    button.disabled = true;
+
+    fetch('{{ url_for("extract_text", filename=filename, page=page) }}', {
+        method: 'POST',
+    })
+    .then(response => response.text())
+    .then(data => {
+        document.getElementById('text-view').innerText = data;
+        document.getElementById('text-view').style.display = 'block';
+        document.getElementById('image-view').style.display = 'none';
+        // Change button text
+        button.innerText = 'View PDF';
+        document.getElementById('editTextButton').style.display = '';
+    })
+    .finally(() => {
+        // Enable the button
+        button.disabled = false;
+    });
+}
+
+// Export Text Functionality
+document.getElementById('exportButton').addEventListener('click', function() {
+    const filename = '{{ filename }}';
+    const exportProgress = document.getElementById('export-progress');
+    const progressContainer = document.getElementById('progress-container');
+    const progressPercentage = document.getElementById('progress-percentage');
+
+    progressContainer.style.display = 'block'; // Show the progress bar
+    exportProgress.value = 0;
+    progressPercentage.textContent = '0%';
+
+    fetch('{{ url_for("export_text", filename=filename) }}')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'completed') {
+                // Create a download link
+                const downloadLink = document.createElement('a');
+                downloadLink.href = data.filepath;
+                downloadLink.download = filename.split('.')[0] + '.txt';
+                downloadLink.textContent = 'Download Text File';
+                downloadLink.classList.add('button', 'is-success', 'mt-2'); // Add some styling
+                document.body.appendChild(downloadLink);
+                progressContainer.style.display = 'none'; // Hide the progress bar
+            }
+        })
+        .catch(error => {
+            console.error('There was a problem with the fetch operation:', error);
+            progressContainer.style.display = 'none'; // Hide the progress bar on error
+            alert('An error occurred during the export.');
+        });
+});
+</script>
+{% endblock %}
