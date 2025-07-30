@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+    <a href="{{ url_for('view_pdf', filename=filename, page=start_page) }}" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back</a>
+    <br><br>
+    <section class="section">
+        <div class="container">
+            <h1 class="title">Extracted Text from {{ filename }}</h1>
+            {% for text in texts %}
+                <div class="box">
+                    {{ text|safe }}
+                </div>
+            {% endfor %}
+        </div>
+        <a href="{{ url_for('view_text', filename=filename, start=start_page, end=end_page + 1) }}" class="btn btn-primary">Next</a>
+    </section>
+    <script>
+        window.onload = function() {
+            const boxes = document.querySelectorAll('.box');
+            const lastBox = boxes[boxes.length - 1];
+            if (lastBox) {
+                lastBox.scrollIntoView({ behavior: 'smooth' });
+            }
+        };
+    </script>
+{% endblock %}
