@@ -1,17 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
     <a href="{{ url_for('view_pdf', filename=filename, page=start_page) }}" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back</a>
-    <br><br>
     <section class="section">
         <div class="container">
-            <h1 class="title">Extracted Text from {{ filename }}</h1>
             {% for text in texts %}
+                {% set page_num = start_page + loop.index0 %}
+                <div style="margin-bottom: 1rem;">
+                    <a href="/static/page_preview_{{ filename }}_{{ page_num }}.png" 
+                       data-lightbox="page-images" 
+                       data-title="Page {{ page_num }} of {{ filename }}"
+                       class="button is-small is-info is-light">
+                       PDF of page {{ page_num }}
+                    </a>
+                </div>
                 <div class="box">
                     {{ text|safe }}
                 </div>
             {% endfor %}
         </div>
-        <a href="{{ url_for('view_text', filename=filename, start=start_page, end=end_page + 1) }}" class="btn btn-primary">Next</a>
+        <a href="{{ url_for('view_text', filename=filename, start=start_page, end=end_page + 1) }}" class="btn btn-primary">More</a>
     </section>
     <script>
         window.onload = function() {

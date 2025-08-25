@@ -7,13 +7,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Martel&family=Tinos&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css" rel="stylesheet">
     <style>
         html, body {
+            margin: 0;
+            padding: 0;
             height: 100%;
         }
         .main-content {
             display: flex;
-            height: 100vh;
+            min-height: 100vh;
         }
         aside.menu {
             width: 250px;
@@ -21,13 +24,22 @@
             border-right: 1px solid #ccc;
         }
         .content-area {
-            flex-grow: 1;
+            flex: 1;
             padding: 2rem;
             overflow-y: auto;
-            min-height: 100vh;
         }
         aside.menu ul.menu-list li a {
             font-size: 80%;
+        }
+        /* Lightbox full width styling */
+        .lb-image {
+            max-width: 90vw !important;
+            max-height: none !important;
+            width: auto !important;
+            height: auto !important;
+        }
+        .lb-container {
+            text-align: center;
         }
     </style>
 </head>
@@ -43,5 +55,23 @@
             {% block content %}{% endblock %}
         </div>
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox-plus-jquery.min.js"></script>
+    <script>
+        // Override lightbox behavior to show images in full width
+        $(document).on('click', 'a[data-lightbox]', function() {
+            // Wait for lightbox to initialize, then modify the image
+            setTimeout(function() {
+                var $img = $('.lb-image');
+                if ($img.length) {
+                    $img.css({
+                        'width': 'auto',
+                        'height': 'auto',
+                        'max-width': '90vw',
+                        'max-height': 'none'
+                    });
+                }
+            }, 100);
+        });
+    </script>
 </body>
 </html>
