@@ -235,3 +235,25 @@ def view_text(filename, start, end=None):
         text = extract_text(filename, page_num)
         texts.append(text.replace('\n', '<br>'))
     return render_template('text.html', filename=filename, texts=texts, start_page=start, end_page=end)
+
+@app.route('/delete/<filename>', methods=['POST'])
+def delete_file(filename):
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    # Delete the PDF file
+    if os.path.exists(filepath):
+        os.remove(filepath)
+    
+    # Delete all associated page preview images
+    image_pattern = f'static/page_preview_{filename}_*.png'
+    import glob
+    for image_file in glob.glob(image_pattern):
+        try:
+            os.remove(image_file)
+        except OSError as e:
+            print(f"Error deleting image file {image_file}: {e}")
+    
+    # Note: We don't delete the database entries to conserve the text data
+    # as requested by the user
+    
+    return redirect(url_for('upload'))
