@@ -5,3 +5,4 @@ venv/
 ocr_data.db
 poppler/
 tesseract/
+.env

@@ -7,11 +7,22 @@ from PIL import Image
 import re
 import sqlite3
 import time  # Import the time module
+import requests
+import json
+from dotenv import load_dotenv
 
 
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'pdf'}
 DATABASE = 'ocr_data.db'
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Get OpenRouter API key from environment variable or .env file
+OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY')
+if not OPENROUTER_API_KEY:
+    print("Warning: OPENROUTER_API_KEY not found in environment variables")
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -40,6 +51,54 @@ def allowed_file(filename):
 def clean_text(text):
     text = re.sub(r'(?<!\n)\n(?!\n)', ' ', text)
     return text.replace('- ', '')
+
+def clean_text_with_openrouter(text):
+    """
+    Clean text using OpenRouter API to remove OCR artifacts.
+    Returns the original text if OpenRouter is not configured.
+    """
+    if not OPENROUTER_API_KEY:
+        print("OpenRouter API key not configured, using basic cleaning")
+        return clean_text(text)
+    
+    prompt = f"""Clean up the following text - remove the strange OCR-like artifacts (random symbols, cut-off words, and phantom paragraphs) - do not rewrite the original text - response should contain only the cleaned text, no explanation, no further questions.
+
+{text}"""
+    
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "deepseek/deepseek-chat-v3.1",  # Using a cost-effective model
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            },
+            timeout=180  # 30 second timeout
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            cleaned_text = result['choices'][0]['message']['content'].strip()
+            print(f"OpenRouter clean text: {cleaned_text}")
+            return cleaned_text
+        else:
+            print(f"OpenRouter API error: {response.status_code} - {response.text}")
+            return clean_text(text)
+            
+    except requests.exceptions.RequestException as e:
+        print(f"OpenRouter API request failed: {e}")
+        return clean_text(text)
+    except (KeyError, IndexError) as e:
+        print(f"OpenRouter API response parsing error: {e}")
+        return clean_text(text)
 
 def get_uploaded_files():
     return sorted([f for f in os.listdir(UPLOAD_FOLDER) if allowed_file(f)])
@@ -93,7 +152,8 @@ def export_pdf(filename):
 
                     image = Image.open(image_path)
                     text = pytesseract.image_to_string(image)
-                    text = clean_text(text)
+                    # Use OpenRouter to clean the text before saving
+                    text = clean_text_with_openrouter(text)
 
                     # Save to database for future use
                     cur.execute(
@@ -180,7 +240,8 @@ def extract_text(filename, page):
     else:
         image = Image.open(image_path)
         text = pytesseract.image_to_string(image)
-        text = clean_text(text)
+        # Use OpenRouter to clean the text before saving
+        text = clean_text_with_openrouter(text)
         cur.execute(
             "INSERT INTO ocr_results (filename, page_number, text) VALUES (?, ?, ?)",
             (filename, page, text),
