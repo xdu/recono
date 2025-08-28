@@ -22,7 +22,7 @@
           <ul>
             {% for filename in uploaded_files %}
               <li>
-                <a href="{{ url_for('view_pdf', filename=filename, page=1) }}">{{ filename }}</a>
+                <a href="{{ url_for('view_text', filename=filename, start=1) }}">{{ filename }}</a>
                 <form method="POST" action="{{ url_for('delete_file', filename=filename) }}" style="display: inline; margin-left: 10px;" onsubmit="return confirmDelete('{{ filename }}')">
                   <button type="submit" class="button is-danger is-small">Delete</button>
                 </form>

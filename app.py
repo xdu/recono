@@ -228,13 +228,22 @@ def view_text(filename, start, end=None):
     if not os.path.exists(filepath):
         return "File not found", 404
 
+    # Get total pages
+    total_pages = 1
+    try:
+        from PyPDF2 import PdfReader
+        total_pages = len(PdfReader(filepath).pages)
+    except Exception as e:
+        print(f"Error reading PDF with PyPDF2: {e}")
+        # total_pages remains 1 if an error occurs
+
     texts = []
     if end is None:
         end = start
     for page_num in range(start, end + 1):
         text = extract_text(filename, page_num)
         texts.append(text.replace('\n', '<br>'))
-    return render_template('text.html', filename=filename, texts=texts, start_page=start, end_page=end)
+    return render_template('text.html', filename=filename, texts=texts, start_page=start, end_page=end, total_pages=total_pages)
 
 @app.route('/delete/<filename>', methods=['POST'])
 def delete_file(filename):

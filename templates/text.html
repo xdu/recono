@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-    <a href="{{ url_for('view_pdf', filename=filename, page=start_page) }}" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back</a>
+    <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
+        <a href="{{ url_for('view_pdf', filename=filename, page=start_page) }}" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back</a>
+        <span>Total pages: {{ total_pages }}</span>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label for="goto-page">Go to:</label>
+            <input type="number" id="goto-page" min="1" max="{{ total_pages }}" style="width: 60px;">
+            <button onclick="goToPage()" class="btn btn-primary">Go</button>
+        </div>
+    </div>
+    <div id="page-data" data-total-pages="{{ total_pages }}" data-filename="{{ filename }}" style="display: none;"></div>
     <section class="section">
         <div class="container">
             {% for text in texts %}
@@ -10,7 +19,7 @@
                        data-lightbox="page-images" 
                        data-title="Page {{ page_num }} of {{ filename }}"
                        class="button is-small is-info is-light">
-                       PDF of page {{ page_num }}
+                       Page {{ page_num }}
                     </a>
                 </div>
                 <div class="box">
@@ -28,5 +37,45 @@
                 lastBox.scrollIntoView({ behavior: 'smooth' });
             }
         };
+
+        function goToPage() {
+            const pageInput = document.getElementById('goto-page');
+            const pageNumber = parseInt(pageInput.value);
+            const pageData = document.getElementById('page-data');
+            const totalPages = parseInt(pageData.dataset.totalPages);
+            const filename = pageData.dataset.filename;
+            
+            // Validate input
+            if (isNaN(pageNumber) || pageNumber < 1 || pageNumber > totalPages) {
+                alert('Please enter a valid page number between 1 and ' + totalPages);
+                pageInput.value = '';
+                pageInput.focus();
+                return;
+            }
+            
+            // Redirect to the selected page
+            window.location.href = '/text/' + filename + '/' + pageNumber + '/';
+        }
+
+        // Allow only numeric input and validate on input
+        document.getElementById('goto-page').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            
+            // Validate max value
+            const value = parseInt(this.value);
+            const pageData = document.getElementById('page-data');
+            const totalPages = parseInt(pageData.dataset.totalPages);
+            
+            if (value > totalPages) {
+                this.value = totalPages;
+            }
+        });
+
+        // Also validate on Enter key press
+        document.getElementById('goto-page').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                goToPage();
+            }
+        });
     </script>
 {% endblock %}
