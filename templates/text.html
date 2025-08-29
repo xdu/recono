@@ -14,13 +14,18 @@
         <div class="container">
             {% for text in texts %}
                 {% set page_num = start_page + loop.index0 %}
-                <div style="margin-bottom: 1rem;">
+                <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
                     <a href="/static/page_preview_{{ filename }}_{{ page_num }}.png" 
                        data-lightbox="page-images" 
                        data-title="Page {{ page_num }} of {{ filename }}"
                        class="button is-small is-info is-light">
                        Page {{ page_num }}
                     </a>
+                    <form action="{{ url_for('clean_with_openrouter', filename=filename, page=page_num) }}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i class="bi bi-magic"></i> Clean with AI
+                        </button>
+                    </form>
                 </div>
                 <div class="box">
                     {{ text|safe }}

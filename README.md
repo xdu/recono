@@ -30,7 +30,12 @@ pip install -r requirements.txt
 
 ## OpenRouter Integration
 
-The application now includes AI-powered text cleaning using OpenRouter. To use this feature:
+The application includes optional AI-powered text cleaning using OpenRouter. The workflow is:
+
+1. **Initial extraction**: Text is extracted using Tesseract OCR with basic cleaning
+2. **Manual AI cleaning**: Users can click the "Clean with AI" button on the text view page to clean specific pages with OpenRouter
+
+### Setup
 
 1. Get an OpenRouter API key from https://openrouter.ai/keys
 2. Create a `.env` file in the project root:

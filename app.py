@@ -87,7 +87,6 @@ def clean_text_with_openrouter(text):
         if response.status_code == 200:
             result = response.json()
             cleaned_text = result['choices'][0]['message']['content'].strip()
-            print(f"OpenRouter clean text: {cleaned_text}")
             return cleaned_text
         else:
             print(f"OpenRouter API error: {response.status_code} - {response.text}")
@@ -152,8 +151,8 @@ def export_pdf(filename):
 
                     image = Image.open(image_path)
                     text = pytesseract.image_to_string(image)
-                    # Use OpenRouter to clean the text before saving
-                    text = clean_text_with_openrouter(text)
+                    # Use basic cleaning for export
+                    text = clean_text(text)
 
                     # Save to database for future use
                     cur.execute(
@@ -240,8 +239,8 @@ def extract_text(filename, page):
     else:
         image = Image.open(image_path)
         text = pytesseract.image_to_string(image)
-        # Use OpenRouter to clean the text before saving
-        text = clean_text_with_openrouter(text)
+        # Use basic cleaning for initial extraction
+        text = clean_text(text)
         cur.execute(
             "INSERT INTO ocr_results (filename, page_number, text) VALUES (?, ?, ?)",
             (filename, page, text),
@@ -305,6 +304,57 @@ def view_text(filename, start, end=None):
         text = extract_text(filename, page_num)
         texts.append(text.replace('\n', '<br>'))
     return render_template('text.html', filename=filename, texts=texts, start_page=start, end_page=end, total_pages=total_pages)
+
+@app.route('/clean_with_openrouter/<filename>/<int:page>', methods=['POST'])
+def clean_with_openrouter(filename, page):
+    """Clean text using OpenRouter and update the database"""
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(filepath):
+        return "File not found", 404
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT text FROM ocr_results WHERE filename = ? AND page_number = ?",
+        (filename, page),
+    )
+    result = cur.fetchone()
+    
+    if result:
+        original_text = result['text']
+        # Clean with OpenRouter
+        cleaned_text = clean_text_with_openrouter(original_text)
+        
+        # Update the database with cleaned text
+        cur.execute(
+            "UPDATE ocr_results SET text = ? WHERE filename = ? AND page_number = ?",
+            (cleaned_text, filename, page),
+        )
+        conn.commit()
+    else:
+        # If no text exists, extract and clean
+        image_path = f'static/page_preview_{filename}_{page}.png'
+        if not os.path.exists(image_path):
+            images = convert_from_path(filepath, first_page=page, last_page=page, dpi=200)
+            image = images[0]
+            image = image.convert("RGB")
+            image.save(image_path, resolution=100.0)
+
+        image = Image.open(image_path)
+        text = pytesseract.image_to_string(image)
+        # Clean with OpenRouter
+        text = clean_text_with_openrouter(text)
+        
+        cur.execute(
+            "INSERT INTO ocr_results (filename, page_number, text) VALUES (?, ?, ?)",
+            (filename, page, text),
+        )
+        conn.commit()
+    
+    conn.close()
+    
+    # Redirect back to the text view page
+    return redirect(url_for('view_text', filename=filename, start=page))
 
 @app.route('/delete/<filename>', methods=['POST'])
 def delete_file(filename):
