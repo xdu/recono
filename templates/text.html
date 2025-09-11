@@ -1,86 +1,221 @@
 {% extends "base.html" %}
+
+{% block title %}Text View - {{ filename }} - Recono{% endblock %}
+
 {% block content %}
-    <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
-        <a href="{{ url_for('view_pdf', filename=filename, page=start_page) }}" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back</a>
-        <span>Total pages: {{ total_pages }}</span>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <label for="goto-page">Go to:</label>
-            <input type="number" id="goto-page" min="1" max="{{ total_pages }}" style="width: 60px;">
-            <button onclick="goToPage()" class="btn btn-primary">Go</button>
+<div class="content-header">
+    <h1>Extracted Text</h1>
+    <p>{{ filename }} • Pages {{ start_page }}{% if end_page != start_page %}-{{ end_page }}{% endif %} of {{ total_pages }}</p>
+</div>
+
+<div class="content-body">
+    <!-- Navigation Controls -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding: 1rem; background: var(--secondary-color); border-radius: var(--radius-lg); border: 1px solid var(--border-light); flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <a href="{{ url_for('view_pdf', filename=filename, page=start_page) }}" class="btn btn-secondary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m12 19-7-7 7-7"></path>
+                    <path d="m19 12-7 7-7-7"></path>
+                </svg>
+                Back to PDF
+            </a>
+            
+            <div class="badge badge-info">
+                Total pages: {{ total_pages }}
+            </div>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <label for="goto-page" style="font-size: 0.875rem; font-weight: 500; color: var(--text-secondary);">Go to page:</label>
+            <input type="number" id="goto-page" min="1" max="{{ total_pages }}" class="form-input" style="width: 80px;">
+            <button onclick="goToPage()" class="btn btn-primary btn-sm">Go</button>
         </div>
     </div>
+
     <div id="page-data" data-total-pages="{{ total_pages }}" data-filename="{{ filename }}" style="display: none;"></div>
-    <section class="section">
-        <div class="container">
-            {% for text in texts %}
-                {% set page_num = start_page + loop.index0 %}
-                <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
-                    <a href="/static/page_preview_{{ filename }}_{{ page_num }}.png" 
-                       data-lightbox="page-images" 
-                       data-title="Page {{ page_num }} of {{ filename }}"
-                       class="button is-small is-info is-light">
-                       Page {{ page_num }}
-                    </a>
-                    <form action="{{ url_for('clean_with_openrouter', filename=filename, page=page_num) }}" method="post" style="display: inline;">
-                        <button type="submit" class="btn btn-success btn-sm">
-                            <i class="bi bi-magic"></i> Clean with AI
-                        </button>
-                    </form>
+
+    <!-- Text Content -->
+    <div style="display: grid; gap: 2rem;">
+        {% for text in texts %}
+            {% set page_num = start_page + loop.index0 %}
+            <div class="card fade-in">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: var(--text-primary);">
+                            Page {{ page_num }}
+                        </h3>
+                        <a href="/static/page_preview_{{ filename }}_{{ page_num }}.png" 
+                           data-lightbox="page-images" 
+                           data-title="Page {{ page_num }} of {{ filename }}"
+                           class="btn btn-secondary btn-sm">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            View Image
+                        </a>
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem;">
+                        <form action="{{ url_for('clean_with_openrouter', filename=filename, page=page_num) }}" method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-success btn-sm tooltip" data-tooltip="Clean text using AI to remove OCR artifacts">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 3a6.364 6.364 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                                </svg>
+                                Clean with AI
+                            </button>
+                        </form>
+                        
+                        <a href="{{ url_for('edit_text', filename=filename, page=page_num) }}" class="btn btn-secondary btn-sm">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                            Edit
+                        </a>
+                    </div>
                 </div>
-                <div class="box">
-                    {{ text|safe }}
+                
+                <div class="card-body">
+                    <div class="text-content" style="background: #fafbfc; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-light); min-height: 200px;">
+                        {% if text.strip() %}
+                            {{ text|safe }}
+                        {% else %}
+                            <div style="text-align: center; color: var(--text-muted); font-style: italic; padding: 2rem;">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14,2 14,8 20,8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                </svg>
+                                <p>No text extracted from this page yet.</p>
+                                <p style="font-size: 0.875rem;">Click "Clean with AI" to extract and process text.</p>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
-            {% endfor %}
-        </div>
-        <a href="{{ url_for('view_text', filename=filename, start=start_page, end=end_page + 1) }}" class="btn btn-primary">More</a>
-    </section>
-    <script>
-        window.onload = function() {
-            const boxes = document.querySelectorAll('.box');
-            const lastBox = boxes[boxes.length - 1];
-            if (lastBox) {
-                lastBox.scrollIntoView({ behavior: 'smooth' });
-            }
-        };
+            </div>
+        {% endfor %}
+    </div>
 
-        function goToPage() {
-            const pageInput = document.getElementById('goto-page');
-            const pageNumber = parseInt(pageInput.value);
-            const pageData = document.getElementById('page-data');
-            const totalPages = parseInt(pageData.dataset.totalPages);
-            const filename = pageData.dataset.filename;
-            
-            // Validate input
-            if (isNaN(pageNumber) || pageNumber < 1 || pageNumber > totalPages) {
-                alert('Please enter a valid page number between 1 and ' + totalPages);
-                pageInput.value = '';
-                pageInput.focus();
-                return;
-            }
-            
-            // Redirect to the selected page
-            window.location.href = '/text/' + filename + '/' + pageNumber + '/';
-        }
+    <!-- Load More Button -->
+    {% if end_page < total_pages %}
+    <div style="text-align: center; margin-top: 2rem;">
+        <a href="{{ url_for('view_text', filename=filename, start=start_page, end=end_page + 1) }}" class="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6"></path>
+            </svg>
+            Load Next Page
+        </a>
+    </div>
+    {% endif %}
+</div>
 
-        // Allow only numeric input and validate on input
-        document.getElementById('goto-page').addEventListener('input', function(e) {
-            this.value = this.value.replace(/[^0-9]/g, '');
-            
-            // Validate max value
-            const value = parseInt(this.value);
-            const pageData = document.getElementById('page-data');
-            const totalPages = parseInt(pageData.dataset.totalPages);
-            
-            if (value > totalPages) {
-                this.value = totalPages;
-            }
-        });
+<script>
+// Auto-scroll to last loaded content
+window.onload = function() {
+    const cards = document.querySelectorAll('.card');
+    if (cards.length > 1) {
+        const lastCard = cards[cards.length - 1];
+        lastCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+};
 
-        // Also validate on Enter key press
-        document.getElementById('goto-page').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                goToPage();
-            }
-        });
-    </script>
+function goToPage() {
+    const pageInput = document.getElementById('goto-page');
+    const pageNumber = parseInt(pageInput.value);
+    const pageData = document.getElementById('page-data');
+    const totalPages = parseInt(pageData.dataset.totalPages);
+    const filename = pageData.dataset.filename;
+    
+    // Validate input
+    if (isNaN(pageNumber) || pageNumber < 1 || pageNumber > totalPages) {
+        // Show error feedback
+        pageInput.style.borderColor = 'var(--danger-color)';
+        pageInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+        
+        setTimeout(() => {
+            pageInput.style.borderColor = 'var(--border-color)';
+            pageInput.style.boxShadow = 'none';
+        }, 2000);
+        
+        pageInput.value = '';
+        pageInput.focus();
+        return;
+    }
+    
+    // Redirect to the selected page
+    window.location.href = '/text/' + filename + '/' + pageNumber + '/';
+}
+
+// Enhanced input validation
+document.getElementById('goto-page').addEventListener('input', function(e) {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    
+    // Validate max value
+    const value = parseInt(this.value);
+    const pageData = document.getElementById('page-data');
+    const totalPages = parseInt(pageData.dataset.totalPages);
+    
+    if (value > totalPages) {
+        this.value = totalPages;
+    }
+    
+    // Reset border color on valid input
+    if (value >= 1 && value <= totalPages) {
+        this.style.borderColor = 'var(--border-color)';
+        this.style.boxShadow = 'none';
+    }
+});
+
+// Enter key handler
+document.getElementById('goto-page').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        goToPage();
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowUp') {
+        window.scrollBy(0, -100);
+        e.preventDefault();
+    } else if (e.key === 'ArrowDown') {
+        window.scrollBy(0, 100);
+        e.preventDefault();
+    }
+});
+
+// Add loading states for AI cleaning
+document.querySelectorAll('form[action*="clean_with_openrouter"]').forEach(form => {
+    form.addEventListener('submit', function() {
+        const button = this.querySelector('button');
+        const originalText = button.innerHTML;
+        
+        button.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+                <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.23"></path>
+            </svg>
+            Processing...
+        `;
+        button.disabled = true;
+        
+        // Re-enable after timeout (fallback)
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }, 30000);
+    });
+});
+
+// Add spin animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);
+</script>
 {% endblock %}
