@@ -1,41 +1,170 @@
 {% extends "base.html" %}
+
+{% block title %}Upload PDF - Recono{% endblock %}
+
 {% block content %}
-  <section class="section">
-    <div class="container">
-      <h1 class="title">Upload PDF</h1>
-      <!-- Form in a column -->
-      <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data">
-        <div class="field">
-          <div class="control">
-            <input class="input" type="file" name="file">
-          </div>
+<div class="content-header">
+    <h1>Upload PDF Document</h1>
+    <p>Select a PDF file to extract text using advanced OCR technology</p>
+</div>
+
+<div class="content-body">
+    <div class="card fade-in">
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data" id="uploadForm">
+                <div class="file-upload-area" id="fileUploadArea">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-muted); margin-bottom: 1rem;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7,10 12,15 17,10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <h3 style="margin: 0 0 0.5rem; color: var(--text-primary); font-weight: 600;">Drop your PDF here</h3>
+                    <p style="margin: 0 0 1.5rem; color: var(--text-secondary);">or click to browse files</p>
+                    <input type="file" name="file" id="fileInput" accept=".pdf" style="display: none;">
+                    <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click();">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14,2 14,8 20,8"></polyline>
+                        </svg>
+                        Choose PDF File
+                    </button>
+                </div>
+                
+                <div id="fileInfo" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--secondary-color); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-color);">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14,2 14,8 20,8"></polyline>
+                        </svg>
+                        <div>
+                            <div id="fileName" style="font-weight: 500; color: var(--text-primary);"></div>
+                            <div id="fileSize" style="font-size: 0.875rem; color: var(--text-secondary);"></div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success" style="margin-top: 1rem;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7,10 12,15 17,10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Upload & Process
+                    </button>
+                </div>
+            </form>
         </div>
-        <div class="field">
-          <div class="control">
-            <button class="button is-primary" type="submit">Upload</button>
-          </div>
-        </div>
-      </form>
-      <!-- File list -->
-      <h2 class="title">Uploaded Files</h2>
-      <div class="content">
-          <ul>
-            {% for filename in uploaded_files %}
-              <li>
-                <a href="{{ url_for('view_text', filename=filename, start=1) }}">{{ filename }}</a>
-                <form method="POST" action="{{ url_for('delete_file', filename=filename) }}" style="display: inline; margin-left: 10px;" onsubmit="return confirmDelete('{{ filename }}')">
-                  <button type="submit" class="button is-danger is-small">Delete</button>
-                </form>
-              </li>
-            {% endfor %}
-          </ul>
-      </div>
-      
-      <script>
-      function confirmDelete(filename) {
-          return confirm(`Are you sure you want to delete "${filename}"? This will remove the PDF file and all extracted page images, but the extracted text will be preserved in the database.`);
-      }
-      </script>
     </div>
-  </section>
+
+    {% if uploaded_files %}
+    <div class="card fade-in" style="margin-top: 2rem;">
+        <div class="card-header">
+            <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem; vertical-align: middle;">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                Recent Documents
+            </h2>
+        </div>
+        <div class="card-body">
+            <div style="display: grid; gap: 1rem;">
+                {% for filename in uploaded_files %}
+                <div class="file-item" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; border: 1px solid var(--border-light); border-radius: var(--radius-md); transition: all 0.2s ease;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary-color), var(--primary-hover)); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14,2 14,8 20,8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="font-weight: 500; color: var(--text-primary); margin-bottom: 0.25rem;">{{ filename }}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-secondary);">PDF Document</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <a href="{{ url_for('view_text', filename=filename, start=1) }}" class="btn btn-primary btn-sm">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            View
+                        </a>
+                        <form method="POST" action="{{ url_for('delete_file', filename=filename) }}" style="display: inline;" onsubmit="return confirmDelete('{{ filename }}')">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3,6 5,6 21,6"></polyline>
+                                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                                </svg>
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function confirmDelete(filename) {
+    return confirm(`Are you sure you want to delete "${filename}"? This will remove the PDF file and all extracted page images, but the extracted text will be preserved in the database.`);
+}
+
+// Enhanced file input handling
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatFileSize(file.size);
+        document.getElementById('fileInfo').style.display = 'block';
+    }
+});
+
+// File upload area click handler
+document.getElementById('fileUploadArea').addEventListener('click', function(e) {
+    if (e.target.tagName !== 'BUTTON') {
+        document.getElementById('fileInput').click();
+    }
+});
+
+// Drag and drop handling
+const fileUploadArea = document.getElementById('fileUploadArea');
+const fileInput = document.getElementById('fileInput');
+
+fileUploadArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type === 'application/pdf') {
+        fileInput.files = files;
+        const file = files[0];
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatFileSize(file.size);
+        document.getElementById('fileInfo').style.display = 'block';
+    }
+});
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// File item hover effects
+document.querySelectorAll('.file-item').forEach(item => {
+    item.addEventListener('mouseenter', function() {
+        this.style.borderColor = 'var(--primary-color)';
+        this.style.backgroundColor = 'rgba(99, 102, 241, 0.02)';
+    });
+    
+    item.addEventListener('mouseleave', function() {
+        this.style.borderColor = 'var(--border-light)';
+        this.style.backgroundColor = 'transparent';
+    });
+});
+</script>
 {% endblock %}

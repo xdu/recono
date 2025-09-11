@@ -1,48 +1,325 @@
 {% extends "base.html" %}
 
-{% block content %}
-<h1 class="title">Export PDF Pages</h1>
+{% block title %}Export Pages - {{ filename }} - Recono{% endblock %}
 
-<form method="POST" action="{{ url_for('export_pdf', filename=filename) }}">
-    <div class="columns is-multiline">
-        {% for page in range(1, total_pages + 1) %}
-        <div class="column is-one-quarter">
-            <div class="card">
-                <div class="card-image">
-                    <figure class="image">
-                        <img src="{{ url_for('static', filename='page_preview_' ~ filename ~ '_' ~ page ~ '.png') }}" alt="Page {{ page }}">
-                    </figure>
+{% block content %}
+<div class="content-header">
+    <h1>Export PDF Pages</h1>
+    <p>{{ filename }} • Select pages to export as text file</p>
+</div>
+
+<div class="content-body">
+    <form method="POST" action="{{ url_for('export_pdf', filename=filename) }}" id="exportForm">
+        <!-- Selection Controls -->
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-header">
+                <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-4"></path>
+                        <polyline points="9,11 12,14 15,11"></polyline>
+                        <line x1="12" y1="14" x2="12" y2="3"></line>
+                    </svg>
+                    Page Selection
+                </h3>
+            </div>
+            
+            <div class="card-body">
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="selectAll()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20,6 9,17 4,12"></polyline>
+                        </svg>
+                        Select All
+                    </button>
+                    
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="selectNone()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        </svg>
+                        Select None
+                    </button>
+                    
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="selectRange()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                        Select Range
+                    </button>
+                    
+                    <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem;">
+                        <span id="selectedCount" class="badge badge-info">0 selected</span>
+                    </div>
                 </div>
-                <div class="card-content">
-                    <div class="field">
-                        <label class="checkbox">
-                            <input type="checkbox" name="pages" value="{{ page }}" {% if page == default_page %}checked{% endif %}>
-                            Page {{ page }}
-                        </label>
+                
+                <!-- Range Selection (hidden by default) -->
+                <div id="rangeSelector" style="display: none; padding: 1rem; background: var(--secondary-color); border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <label style="font-weight: 500;">From page:</label>
+                        <input type="number" id="rangeStart" min="1" max="{{ total_pages }}" value="1" class="form-input" style="width: 80px;">
+                        
+                        <label style="font-weight: 500;">To page:</label>
+                        <input type="number" id="rangeEnd" min="1" max="{{ total_pages }}" value="{{ total_pages }}" class="form-input" style="width: 80px;">
+                        
+                        <button type="button" class="btn btn-primary btn-sm" onclick="applyRange()">Apply</button>
                     </div>
                 </div>
             </div>
         </div>
-        {% endfor %}
-    </div>
 
-    <div class="field is-grouped" style="margin-top: 20px;">
-        <div class="control">
-            <button type="submit" class="button is-primary">
-                Export Selected Pages
-            </button>
+        <!-- Page Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            {% for page in range(1, total_pages + 1) %}
+            <div class="card page-card" data-page="{{ page }}">
+                <div class="card-body" style="padding: 1rem;">
+                    <div style="position: relative; margin-bottom: 1rem;">
+                        <img 
+                            src="{{ url_for('static', filename='page_preview_' ~ filename ~ '_' ~ page ~ '.png') }}" 
+                            alt="Page {{ page }}"
+                            style="width: 100%; height: 200px; object-fit: cover; border-radius: var(--radius-md); cursor: pointer;"
+                            onclick="togglePage({{ page }})"
+                        >
+                        <div class="page-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(99, 102, 241, 0.2); border-radius: var(--radius-md); display: none; align-items: center; justify-content: center;">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                                <polyline points="20,6 9,17 4,12"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <label class="checkbox-container" style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; font-weight: 500;">
+                            <input 
+                                type="checkbox" 
+                                name="pages" 
+                                value="{{ page }}" 
+                                {% if page == default_page %}checked{% endif %}
+                                onchange="updateSelection()"
+                                style="width: 18px; height: 18px; accent-color: var(--primary-color);"
+                            >
+                            Page {{ page }}
+                        </label>
+                        
+                        <a href="{{ url_for('view_pdf', filename=filename, page=page) }}" class="btn btn-secondary btn-sm">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            View
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Export Controls -->
+        <div class="card">
+            <div class="card-body">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0 0 0.5rem; font-size: 1.125rem; font-weight: 600;">Ready to Export</h3>
+                        <p style="margin: 0; color: var(--text-secondary); font-size: 0.875rem;">Selected pages will be exported as a single text file</p>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem;">
+                        <a href="{{ url_for('view_pdf', filename=filename, page=1) }}" class="btn btn-secondary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m12 19-7-7 7-7"></path>
+                                <path d="m19 12-7 7-7-7"></path>
+                            </svg>
+                            Cancel
+                        </a>
+                        
+                        <button type="submit" class="btn btn-success" id="exportButton" disabled>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17,8 12,3 7,8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            Export Selected Pages
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Progress Bar (hidden by default) -->
+    <div id="progress-container" style="margin-top: 2rem; display: none;">
+        <div class="card">
+            <div class="card-body">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--primary-color); animation: spin 1s linear infinite;">
+                        <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.23"></path>
+                    </svg>
+                    <span style="font-weight: 500;">Exporting pages...</span>
+                </div>
+                <div class="progress-container">
+                    <div id="export-progress" class="progress-bar" style="width: 0%;"></div>
+                </div>
+                <div id="progress-text" style="text-align: center; margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);">Preparing export...</div>
+            </div>
         </div>
     </div>
-</form>
-
-<!-- Progress bar -->
-<div id="progress-container" style="margin-top: 20px; display: none;">
-    <progress id="export-progress" class="progress is-primary" value="0" max="100"></progress>
-    <p id="progress-text">Preparing export...</p>
 </div>
 
 <script>
-// Add any necessary JavaScript here
-</script>
+function updateSelection() {
+    const checkboxes = document.querySelectorAll('input[name="pages"]');
+    const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    
+    document.getElementById('selectedCount').textContent = `${selectedCount} selected`;
+    document.getElementById('exportButton').disabled = selectedCount === 0;
+    
+    // Update visual feedback
+    checkboxes.forEach(checkbox => {
+        const pageCard = checkbox.closest('.page-card');
+        const overlay = pageCard.querySelector('.page-overlay');
+        
+        if (checkbox.checked) {
+            pageCard.style.borderColor = 'var(--primary-color)';
+            pageCard.style.backgroundColor = 'rgba(99, 102, 241, 0.02)';
+            overlay.style.display = 'flex';
+        } else {
+            pageCard.style.borderColor = 'var(--border-light)';
+            pageCard.style.backgroundColor = 'white';
+            overlay.style.display = 'none';
+        }
+    });
+}
 
+function selectAll() {
+    const checkboxes = document.querySelectorAll('input[name="pages"]');
+    checkboxes.forEach(cb => cb.checked = true);
+    updateSelection();
+}
+
+function selectNone() {
+    const checkboxes = document.querySelectorAll('input[name="pages"]');
+    checkboxes.forEach(cb => cb.checked = false);
+    updateSelection();
+}
+
+function selectRange() {
+    const rangeSelector = document.getElementById('rangeSelector');
+    rangeSelector.style.display = rangeSelector.style.display === 'none' ? 'block' : 'none';
+}
+
+function applyRange() {
+    const start = parseInt(document.getElementById('rangeStart').value);
+    const end = parseInt(document.getElementById('rangeEnd').value);
+    
+    if (start > end) {
+        alert('Start page must be less than or equal to end page');
+        return;
+    }
+    
+    const checkboxes = document.querySelectorAll('input[name="pages"]');
+    checkboxes.forEach(cb => {
+        const page = parseInt(cb.value);
+        cb.checked = page >= start && page <= end;
+    });
+    
+    updateSelection();
+    document.getElementById('rangeSelector').style.display = 'none';
+}
+
+function togglePage(pageNum) {
+    const checkbox = document.querySelector(`input[value="${pageNum}"]`);
+    checkbox.checked = !checkbox.checked;
+    updateSelection();
+}
+
+// Form submission with progress
+document.getElementById('exportForm').addEventListener('submit', function(e) {
+    const selectedPages = document.querySelectorAll('input[name="pages"]:checked');
+    if (selectedPages.length === 0) {
+        e.preventDefault();
+        alert('Please select at least one page to export');
+        return;
+    }
+    
+    // Show progress
+    document.getElementById('progress-container').style.display = 'block';
+    document.getElementById('exportButton').disabled = true;
+    document.getElementById('exportButton').innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+            <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.23"></path>
+        </svg>
+        Exporting...
+    `;
+    
+    // Simulate progress (since we can't track real progress easily)
+    let progress = 0;
+    const progressBar = document.getElementById('export-progress');
+    const progressText = document.getElementById('progress-text');
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 20;
+        if (progress > 90) progress = 90;
+        
+        progressBar.style.width = progress + '%';
+        progressText.textContent = `Processing page ${Math.ceil(progress / 100 * selectedPages.length)} of ${selectedPages.length}...`;
+    }, 500);
+    
+    // Clear interval after form submission
+    setTimeout(() => clearInterval(interval), 100);
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateSelection();
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === 'a') {
+                e.preventDefault();
+                selectAll();
+            } else if (e.key === 'd') {
+                e.preventDefault();
+                selectNone();
+            }
+        }
+    });
+    
+    // Add keyboard shortcuts info
+    const tooltip = document.createElement('div');
+    tooltip.style.cssText = `
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: var(--text-primary);
+        color: white;
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius-md);
+        font-size: 0.75rem;
+        opacity: 0.8;
+        z-index: 1000;
+        max-width: 200px;
+    `;
+    tooltip.innerHTML = 'Ctrl+A Select all • Ctrl+D Select none • Click images to toggle';
+    document.body.appendChild(tooltip);
+    
+    setTimeout(() => {
+        tooltip.style.opacity = '0';
+        tooltip.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => tooltip.remove(), 300);
+    }, 4000);
+});
+
+// Add spin animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);
+</script>
 {% endblock %}
