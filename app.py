@@ -5,16 +5,18 @@ from pdf2image import convert_from_path
 import pytesseract
 from PIL import Image
 import re
-import sqlite3
 import time  # Import the time module
 import requests
 import json
+import uuid
+import threading
 from dotenv import load_dotenv
 
 
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'pdf'}
-DATABASE = 'ocr_data.db'
+OCR_DATA_DIR = 'ocr_data'
+INDEX_FILE = os.path.join(OCR_DATA_DIR, 'index.json')
 
 # Load environment variables from .env file
 load_dotenv()
@@ -27,23 +29,66 @@ if not OPENROUTER_API_KEY:
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(OCR_DATA_DIR, exist_ok=True)
 
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+# Thread lock for index file access
+index_lock = threading.Lock()
 
-def init_db():
-    conn = get_db_connection()
-    with open('schema.sql') as f:
-        conn.executescript(f.read())
-    conn.close()
+def load_index():
+    """Load the filename to UUID mapping from index.json"""
+    if not os.path.exists(INDEX_FILE):
+        return {}
+    try:
+        with open(INDEX_FILE, 'r') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError):
+        return {}
 
-import os
+def save_index(index_data):
+    """Save the filename to UUID mapping to index.json"""
+    with index_lock:
+        with open(INDEX_FILE, 'w') as f:
+            json.dump(index_data, f, indent=2)
 
-with app.app_context():
-    if not os.path.exists(DATABASE):
-        init_db()
+def get_or_create_uuid(filename):
+    """Get existing UUID for filename or create new one"""
+    index = load_index()
+    if filename in index:
+        return index[filename]
+
+    # Create new UUID
+    file_uuid = str(uuid.uuid4())
+    index[filename] = file_uuid
+    save_index(index)
+
+    # Create UUID directory
+    uuid_dir = os.path.join(OCR_DATA_DIR, file_uuid)
+    os.makedirs(uuid_dir, exist_ok=True)
+
+    return file_uuid
+
+def get_ocr_text(filename, page_number):
+    """Get OCR text for a specific page"""
+    file_uuid = get_or_create_uuid(filename)
+    page_file = os.path.join(OCR_DATA_DIR, file_uuid, f'{page_number}.json')
+
+    if not os.path.exists(page_file):
+        return None
+
+    try:
+        with open(page_file, 'r') as f:
+            data = json.load(f)
+            return data.get('text', '')
+    except (json.JSONDecodeError, FileNotFoundError):
+        return None
+
+def save_ocr_text(filename, page_number, text):
+    """Save OCR text for a specific page"""
+    file_uuid = get_or_create_uuid(filename)
+    page_file = os.path.join(OCR_DATA_DIR, file_uuid, f'{page_number}.json')
+
+    with open(page_file, 'w') as f:
+        json.dump({'text': text}, f, indent=2)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -132,16 +177,10 @@ def export_pdf(filename):
         # Export the selected pages
         with open(output_path, 'w') as f:
             for page in selected_pages:
-                # Get text from database or perform OCR
-                conn = get_db_connection()
-                cur = conn.cursor()
-                cur.execute("SELECT text FROM ocr_results WHERE filename = ? AND page_number = ?",
-                           (filename, page))
-                result = cur.fetchone()
+                # Get text from JSON storage or perform OCR
+                text = get_ocr_text(filename, page)
 
-                if result:
-                    text = result['text']
-                else:
+                if text is None:
                     # Perform OCR
                     image_path = f'static/page_preview_{filename}_{page}.png'
                     if not os.path.exists(image_path):
@@ -154,17 +193,12 @@ def export_pdf(filename):
                     # Use basic cleaning for export
                     text = clean_text(text)
 
-                    # Save to database for future use
-                    cur.execute(
-                        "INSERT INTO ocr_results (filename, page_number, text) VALUES (?, ?, ?)",
-                        (filename, page, text)
-                    )
-                    conn.commit()
+                    # Save to JSON storage for future use
+                    save_ocr_text(filename, page, text)
 
                 f.write(f"=== Page {page} ===\n")
                 f.write(text)
                 f.write("\n\n")
-                conn.close()
 
         return redirect(url_for('static', filename=f'uploads/{output_filename}'))
 
@@ -227,26 +261,13 @@ def extract_text(filename, page):
         image = image.convert("RGB")
         image.save(image_path, resolution=100.0)
 
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT text FROM ocr_results WHERE filename = ? AND page_number = ?",
-        (filename, page),
-    )
-    result = cur.fetchone()
-    if result:
-        text = result['text']
-    else:
+    text = get_ocr_text(filename, page)
+    if text is None:
         image = Image.open(image_path)
         text = pytesseract.image_to_string(image)
         # Use basic cleaning for initial extraction
         text = clean_text(text)
-        cur.execute(
-            "INSERT INTO ocr_results (filename, page_number, text) VALUES (?, ?, ?)",
-            (filename, page, text),
-        )
-        conn.commit()
-    conn.close()
+        save_ocr_text(filename, page, text)
 
     return text
 
@@ -307,30 +328,19 @@ def view_text(filename, start, end=None):
 
 @app.route('/clean_with_openrouter/<filename>/<int:page>', methods=['POST'])
 def clean_with_openrouter(filename, page):
-    """Clean text using OpenRouter and update the database"""
+    """Clean text using OpenRouter and update the JSON storage"""
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     if not os.path.exists(filepath):
         return "File not found", 404
 
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT text FROM ocr_results WHERE filename = ? AND page_number = ?",
-        (filename, page),
-    )
-    result = cur.fetchone()
-    
-    if result:
-        original_text = result['text']
+    text = get_ocr_text(filename, page)
+
+    if text:
+        original_text = text
         # Clean with OpenRouter
         cleaned_text = clean_text_with_openrouter(original_text)
-        
-        # Update the database with cleaned text
-        cur.execute(
-            "UPDATE ocr_results SET text = ? WHERE filename = ? AND page_number = ?",
-            (cleaned_text, filename, page),
-        )
-        conn.commit()
+        # Update the JSON storage with cleaned text
+        save_ocr_text(filename, page, cleaned_text)
     else:
         # If no text exists, extract and clean
         image_path = f'static/page_preview_{filename}_{page}.png'
@@ -344,26 +354,20 @@ def clean_with_openrouter(filename, page):
         text = pytesseract.image_to_string(image)
         # Clean with OpenRouter
         text = clean_text_with_openrouter(text)
-        
-        cur.execute(
-            "INSERT INTO ocr_results (filename, page_number, text) VALUES (?, ?, ?)",
-            (filename, page, text),
-        )
-        conn.commit()
-    
-    conn.close()
-    
+        # Save to JSON storage
+        save_ocr_text(filename, page, text)
+
     # Redirect back to the text view page
     return redirect(url_for('view_text', filename=filename, start=page))
 
 @app.route('/delete/<filename>', methods=['POST'])
 def delete_file(filename):
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    
+
     # Delete the PDF file
     if os.path.exists(filepath):
         os.remove(filepath)
-    
+
     # Delete all associated page preview images
     image_pattern = f'static/page_preview_{filename}_*.png'
     import glob
@@ -372,8 +376,16 @@ def delete_file(filename):
             os.remove(image_file)
         except OSError as e:
             print(f"Error deleting image file {image_file}: {e}")
-    
-    # Note: We don't delete the database entries to conserve the text data
-    # as requested by the user
-    
+
+    # Delete OCR data directory and index entry
+    index = load_index()
+    if filename in index:
+        file_uuid = index[filename]
+        uuid_dir = os.path.join(OCR_DATA_DIR, file_uuid)
+        if os.path.exists(uuid_dir):
+            import shutil
+            shutil.rmtree(uuid_dir)
+        del index[filename]
+        save_index(index)
+
     return redirect(url_for('upload'))
