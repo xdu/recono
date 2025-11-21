@@ -213,15 +213,30 @@ def extract_text(filename, page):
     if not os.path.exists(filepath):
         return "File not found", 404
 
-    image_path = f'static/page_preview_{filename}_{page}.png'
-    if not os.path.exists(image_path):
-        images = convert_from_path(filepath, first_page=page, last_page=page, dpi=200)
-        image = images[0]
-        image = image.convert("RGB")
-        image.save(image_path, resolution=100.0)
-
     text = get_ocr_text(filename, page)
     if text is None:
+        # Try direct PDF text extraction first for optimization
+        try:
+            from PyPDF2 import PdfReader
+            pdf_reader = PdfReader(filepath)
+            page_obj = pdf_reader.pages[page - 1]  # page is 1-indexed
+            direct_text = page_obj.extract_text()
+            if direct_text.strip():
+                # If direct text extraction succeeds, use it
+                text = clean_text(direct_text)
+                save_ocr_text(filename, page, text)
+                return text
+        except Exception as e:
+            print(f"Direct PDF text extraction failed: {e}")
+
+        # Otherwise, convert to image and do OCR
+        image_path = f'static/page_preview_{filename}_{page}.png'
+        if not os.path.exists(image_path):
+            images = convert_from_path(filepath, first_page=page, last_page=page, dpi=200)
+            image = images[0]
+            image = image.convert("RGB")
+            image.save(image_path, resolution=100.0)
+
         image = Image.open(image_path)
         text = pytesseract.image_to_string(image)
         # Use basic cleaning for initial extraction
