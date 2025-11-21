@@ -207,7 +207,6 @@ def view_pdf(filename, page):
         total_pages=total_pages,
     )
 
-@app.route('/extract_text/<filename>/<int:page>', methods=['POST'])
 def extract_text(filename, page):
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     if not os.path.exists(filepath):
@@ -245,36 +244,6 @@ def extract_text(filename, page):
 
     return text
 
-@app.route('/edit_text/<filename>/<int:page>', methods=['GET', 'POST'])
-def edit_text(filename, page):
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    if not os.path.exists(filepath):
-        return "File not found", 404
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT text FROM ocr_results WHERE filename = ? AND page_number = ?",
-        (filename, page),
-    )
-    result = cur.fetchone()
-    text = result['text'] if result else ""
-    conn.close()
-
-    if request.method == 'POST':
-        if request.form.get('action') == 'save':
-            new_text = request.form['text']
-            conn = get_db_connection()
-            cur = conn.cursor()
-            cur.execute(
-                "UPDATE ocr_results SET text = ? WHERE filename = ? AND page_number = ?",
-                (new_text, filename, page),
-            )
-            conn.commit()
-            conn.close()
-        return redirect(url_for('view_pdf', filename=filename, page=page))
-
-    return render_template('edit_text.html', filename=filename, page=page, text=text)
 
 @app.route('/text/<filename>/<int:start>/', methods=['GET', 'POST'])
 @app.route('/text/<filename>/<int:start>/<int:end>/', methods=['GET', 'POST'])
@@ -282,6 +251,11 @@ def view_text(filename, start, end=None):
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     if not os.path.exists(filepath):
         return "File not found", 404
+
+    try:
+        repo.git.pull('origin', 'main')
+    except Exception as e:
+        print(f"Failed to pull from GitHub: {e}")
 
     # Get total pages
     total_pages = 1
@@ -351,15 +325,6 @@ def delete_file(filename):
         except OSError as e:
             print(f"Error deleting image file {image_file}: {e}")
 
-    # Delete OCR data directory and index entry
-    index = load_index()
-    if filename in index:
-        file_uuid = index[filename]
-        uuid_dir = os.path.join(OCR_DATA_DIR, file_uuid)
-        if os.path.exists(uuid_dir):
-            import shutil
-            shutil.rmtree(uuid_dir)
-        del index[filename]
-        save_index(index)
+
 
     return redirect(url_for('upload'))
