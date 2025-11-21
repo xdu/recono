@@ -11,6 +11,7 @@ import json
 import uuid
 import threading
 from dotenv import load_dotenv
+from git import Repo
 
 
 UPLOAD_FOLDER = 'static/uploads'
@@ -30,6 +31,8 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OCR_DATA_DIR, exist_ok=True)
+
+repo = Repo('.')
 
 # Thread lock for index file access
 index_lock = threading.Lock()
@@ -61,6 +64,9 @@ def get_or_create_uuid(filename):
     index[filename] = file_uuid
     save_index(index)
 
+    # Commit the index file
+    commit_ocr_to_github(INDEX_FILE, f"Add index for filename {filename}")
+
     # Create UUID directory
     uuid_dir = os.path.join(OCR_DATA_DIR, file_uuid)
     os.makedirs(uuid_dir, exist_ok=True)
@@ -89,6 +95,8 @@ def save_ocr_text(filename, page_number, text):
 
     with open(page_file, 'w') as f:
         json.dump({'text': text}, f, indent=2)
+
+    commit_ocr_to_github(page_file, f"Add OCR text for {filename} page {page_number}")
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -147,7 +155,28 @@ def clean_text_with_openrouter(text):
 def get_uploaded_files():
     return sorted([f for f in os.listdir(UPLOAD_FOLDER) if allowed_file(f)])
 
-
+def commit_ocr_to_github(file_path, message):
+    try:
+        current_branch = repo.active_branch.name
+        # Create ocr_pages if not exists
+        if 'ocr_pages' not in [head.name for head in repo.heads]:
+            ocr_branch = repo.create_head('ocr_pages')
+        else:
+            ocr_branch = repo.heads.ocr_pages
+        # Checkout to ocr_pages
+        repo.git.checkout(ocr_branch)
+        # Add the file
+        repo.index.add([file_path])
+        # Check if there are staged changes
+        if repo.git.diff('--cached', '--name-only'):
+            # Commit
+            repo.index.commit(message)
+            # Push
+            repo.git.push('origin', 'ocr_pages')
+        # Switch back
+        repo.git.checkout(current_branch)
+    except Exception as e:
+        print(f"Git operation failed: {e}")
 
 @app.route('/', methods=['GET', 'POST'])
 def upload():
