@@ -157,14 +157,6 @@ def get_uploaded_files():
 
 def commit_ocr_to_github(file_path, message):
     try:
-        current_branch = repo.active_branch.name
-        # Create ocr_pages if not exists
-        if 'ocr_pages' not in [head.name for head in repo.heads]:
-            ocr_branch = repo.create_head('ocr_pages')
-        else:
-            ocr_branch = repo.heads.ocr_pages
-        # Checkout to ocr_pages
-        repo.git.checkout(ocr_branch)
         # Add the file
         repo.index.add([file_path])
         # Check if there are staged changes
@@ -172,9 +164,7 @@ def commit_ocr_to_github(file_path, message):
             # Commit
             repo.index.commit(message)
             # Push
-            repo.git.push('origin', 'ocr_pages')
-        # Switch back
-        repo.git.checkout(current_branch)
+            repo.git.push('origin', 'main')
     except Exception as e:
         print(f"Git operation failed: {e}")
 
