@@ -84,15 +84,6 @@
             </svg>
             Edit Text
         </a>
-        
-        <a class="btn btn-secondary" href="{{ url_for('export_pdf', filename=filename, default_page=page) }}">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17,8 12,3 7,8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            Export Pages
-        </a>
     </div>
 
     <!-- PDF Page Display -->
@@ -141,25 +132,7 @@
         </div>
     </div>
 
-    <!-- Progress Bar (hidden by default) -->
-    <div id="progress-container" style="margin-top: 2rem; display: none;">
-        <div class="card">
-            <div class="card-body">
-                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--primary-color);">
-                        <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.23"></path>
-                        <path d="M16 12l-4-4-4 4"></path>
-                        <path d="M12 16V8"></path>
-                    </svg>
-                    <span style="font-weight: 500;">Processing...</span>
-                </div>
-                <div class="progress-container">
-                    <div id="export-progress" class="progress-bar" style="width: 0%;"></div>
-                </div>
-                <div id="progress-percentage" style="text-align: center; margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);">0%</div>
-            </div>
-        </div>
-    </div>
+
 </div>
 
 <script>

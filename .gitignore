@@ -2,7 +2,7 @@ static/
 __pycache__/
 venv/
 .vscode/launch.json
-ocr_data.db
+ocr_data/
 poppler/
 tesseract/
 .env

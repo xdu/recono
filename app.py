@@ -147,67 +147,7 @@ def clean_text_with_openrouter(text):
 def get_uploaded_files():
     return sorted([f for f in os.listdir(UPLOAD_FOLDER) if allowed_file(f)])
 
-@app.route('/export/<filename>', methods=['GET', 'POST'])
-def export_pdf(filename):
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    if not os.path.exists(filepath):
-        return "File not found", 404
 
-    try:
-        from PyPDF2 import PdfReader
-        total_pages = len(PdfReader(filepath).pages)
-    except Exception as e:
-        print(f"Error reading PDF with PyPDF2: {e}")
-        return "Error reading PDF", 500
-
-    if request.method == 'POST':
-        # Handle export
-        selected_pages = request.form.getlist('pages')
-        if not selected_pages:
-            return "No pages selected", 400
-
-        # Convert to integers
-        selected_pages = [int(page) for page in selected_pages]
-
-        # Generate output filename
-        base_filename = os.path.splitext(filename)[0]
-        output_filename = f"{base_filename}_pages_{'_'.join(map(str, selected_pages))}.txt"
-        output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
-
-        # Export the selected pages
-        with open(output_path, 'w') as f:
-            for page in selected_pages:
-                # Get text from JSON storage or perform OCR
-                text = get_ocr_text(filename, page)
-
-                if text is None:
-                    # Perform OCR
-                    image_path = f'static/page_preview_{filename}_{page}.png'
-                    if not os.path.exists(image_path):
-                        images = convert_from_path(filepath, first_page=page, last_page=page, dpi=200)
-                        image = images[0]
-                        image.save(image_path)
-
-                    image = Image.open(image_path)
-                    text = pytesseract.image_to_string(image)
-                    # Use basic cleaning for export
-                    text = clean_text(text)
-
-                    # Save to JSON storage for future use
-                    save_ocr_text(filename, page, text)
-
-                f.write(f"=== Page {page} ===\n")
-                f.write(text)
-                f.write("\n\n")
-
-        return redirect(url_for('static', filename=f'uploads/{output_filename}'))
-
-    # For GET request, show the export page
-    default_page = request.args.get('default_page', 1, type=int)
-    return render_template('export.html',
-                         filename=filename,
-                         total_pages=total_pages,
-                         default_page=default_page)
 
 @app.route('/', methods=['GET', 'POST'])
 def upload():
