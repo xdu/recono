@@ -11,6 +11,25 @@ A Flask application for extracting text from PDF files using OCR (Tesseract) wit
 - Edit and save extracted text
 - Export text from selected pages
 
+## Development Container
+
+This project includes a Dev Container configuration for a consistent development environment using Docker and VS Code Dev Containers. See [DEV_CONTAINER.md](DEV_CONTAINER.md) for detailed instructions.
+
+### Quick Start with Dev Container
+
+1. Install [Docker](https://www.docker.com/get-started) and [VS Code](https://code.visualstudio.com/) with the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+2. Open this project in VS Code
+3. Press `F1` and select "Dev Containers: Reopen in Container"
+4. Wait for the container to build and dependencies to install
+5. Start the app: `python app.py`
+
+The dev container comes pre-configured with:
+- Python 3.11
+- Tesseract OCR and all required system dependencies
+- All Python dependencies from `requirements.txt`
+- Development tools (Black, Pylint, Flake8, etc.)
+- VS Code extensions for Python and Flask development
+
 ## Setup
 
 1. Install dependencies:
