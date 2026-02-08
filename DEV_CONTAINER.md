@@ -72,34 +72,38 @@ The following extensions are automatically installed:
 
 Once inside the dev container:
 
+### Option 1: Using VS Code Tasks (Recommended)
+
+1. **Open the Command Palette** (`F1` or `Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. **Run "Tasks: Run Task"**
+3. **Select one of the following options**:
+   - **"Run Flask App"** - Runs the application with standard settings
+   - **"Flask App (Debug Mode)"** - Runs with debug mode enabled for auto-reload
+
+4. **Access the application**:
+   - Open your browser to `http://localhost:5000`
+   - The port is automatically forwarded by the dev container configuration
+
+### Option 2: Using Terminal
+
 1. **Start the Flask development server**:
    ```bash
    python app.py
    ```
 
-2. **Access the application**:
-   - Open your browser to `http://localhost:5000`
-   - The port is automatically forwarded by the dev container configuration
+2. **For development with auto-reload**:
+   ```bash
+   python -m flask run --host=0.0.0.0 --port=5000 --debug
+   ```
 
-3. **For development with auto-reload**:
-   - The app will auto-reload on file changes in development mode
+3. **Access the application**:
+   - Open your browser to `http://localhost:5000`
 
 ## Workspace Structure
 
 - `/workspace` - Your project root directory
 - All changes made in the container are reflected in your local filesystem
 - The container mounts your project directory as a volume
-
-## Database
-
-A PostgreSQL database is included in the dev environment:
-- **Host**: `localhost` (within container network)
-- **Port**: `5432`
-- **Database**: `postgres`
-- **Username**: `postgres`
-- **Password**: `postgres`
-
-Note: This project currently doesn't use the database, but it's available if needed.
 
 ## Troubleshooting
 

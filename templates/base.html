@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -35,7 +36,8 @@
             box-sizing: border-box;
         }
 
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             height: 100%;
@@ -350,17 +352,17 @@
             .app-container {
                 flex-direction: column;
             }
-            
+
             .sidebar {
                 width: 100%;
                 height: auto;
             }
-            
+
             .main-content {
                 margin: 0;
                 border-radius: 0;
             }
-            
+
             .content-body {
                 padding: 1rem;
             }
@@ -372,8 +374,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .slide-in {
@@ -381,8 +390,15 @@
         }
 
         @keyframes slideIn {
-            from { transform: translateX(-20px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         /* Status Badges */
@@ -440,6 +456,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="app-container">
         <!-- Enhanced Sidebar -->
@@ -453,16 +470,18 @@
                         <line x1="16" y1="17" x2="8" y2="17"></line>
                         <polyline points="10,9 9,9 8,9"></polyline>
                     </svg>
-                    Recono
+                    Economist
                 </h1>
                 <div class="subtitle">PDF Text Extraction Tool</div>
             </div>
-            
+
             <nav class="sidebar-nav">
                 <div class="nav-section">
                     <div class="nav-section-title">Main</div>
-                    <a href="{{ url_for('upload') }}" class="nav-item {% if request.endpoint == 'upload' %}active{% endif %}">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <a href="{{ url_for('upload') }}"
+                        class="nav-item {% if request.endpoint == 'upload' %}active{% endif %}">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7,10 12,15 17,10"></polyline>
                             <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -470,20 +489,24 @@
                         Upload Files
                     </a>
                 </div>
-                
+
                 {% if request.endpoint in ['view_pdf', 'view_text'] %}
                 <div class="nav-section">
                     <div class="nav-section-title">Current Document</div>
                     {% if filename %}
-                    <a href="{{ url_for('view_pdf', filename=filename, page=1) }}" class="nav-item {% if request.endpoint == 'view_pdf' %}active{% endif %}">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <a href="{{ url_for('view_pdf', filename=filename, page=1) }}"
+                        class="nav-item {% if request.endpoint == 'view_pdf' %}active{% endif %}">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                             <circle cx="12" cy="12" r="3"></circle>
                         </svg>
                         View Pages
                     </a>
-                    <a href="{{ url_for('view_text', filename=filename, start=1) }}" class="nav-item {% if request.endpoint == 'view_text' %}active{% endif %}">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <a href="{{ url_for('view_text', filename=filename, start=1) }}"
+                        class="nav-item {% if request.endpoint == 'view_text' %}active{% endif %}">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                             <polyline points="14,2 14,8 20,8"></polyline>
                             <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -507,8 +530,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox-plus-jquery.min.js"></script>
     <script>
         // Enhanced lightbox behavior
-        $(document).on('click', 'a[data-lightbox]', function() {
-            setTimeout(function() {
+        $(document).on('click', 'a[data-lightbox]', function () {
+            setTimeout(function () {
                 var $img = $('.lb-image');
                 if ($img.length) {
                     $img.css({
@@ -522,7 +545,7 @@
         });
 
         // File upload drag and drop enhancement
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const fileUploadArea = document.querySelector('.file-upload-area');
             if (fileUploadArea) {
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -563,4 +586,5 @@
         });
     </script>
 </body>
+
 </html>

@@ -37,7 +37,8 @@
         "ms-python.debugpy",
         "eamodio.gitlens",
         "ms-azuretools.vscode-docker",
-        "streetsidesoftware.code-spell-checker"
+        "streetsidesoftware.code-spell-checker",
+        "saoudrizwan.claude-dev"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",

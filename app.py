@@ -326,5 +326,8 @@ def delete_file(filename):
             print(f"Error deleting image file {image_file}: {e}")
 
 
-
     return redirect(url_for('upload'))
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
